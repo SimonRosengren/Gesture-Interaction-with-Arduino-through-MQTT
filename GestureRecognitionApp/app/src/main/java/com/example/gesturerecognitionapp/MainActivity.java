@@ -13,6 +13,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.TextView;
 
 import org.eclipse.paho.android.service.MqttAndroidClient;
 import org.eclipse.paho.client.mqttv3.DisconnectedBufferOptions;
@@ -58,6 +59,8 @@ public class MainActivity extends AppCompatActivity {
     private Button mLeftButton;
     private Button mRightButton;
 
+    private TextView bt_output;
+
     private MqttAndroidClient mqttAndroidClient;
 
     BufferedReader reader;
@@ -82,6 +85,8 @@ public class MainActivity extends AppCompatActivity {
         InputStream isTrainData = getResources().openRawResource(R.raw.smoothnormalizedbigdata);
         reader = new BufferedReader(new InputStreamReader(isTrainData));
 
+        bt_output = (TextView) findViewById(R.id.bt_output);
+        bt_output.setText("BT input");
 
 
         //TRAIN
@@ -308,10 +313,12 @@ public class MainActivity extends AppCompatActivity {
             int begin = 0;
             int bytes = 0;
             while (true) {
+                //bt_output.setText(buffer[0]);
                 try {
                     bytes += mmInStream.read(buffer, bytes, buffer.length - bytes);
                     for(int i = begin; i < bytes; i++) {
-                        if(buffer[i] == "#".getBytes()[0]) {
+
+                        if(buffer[i] == ",".getBytes()[0]) {
                             mHandler.obtainMessage(1, begin, i, buffer).sendToTarget();
                             begin = i + 1;
                             if(i == bytes - 1) {
@@ -337,6 +344,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+
     Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
@@ -348,11 +356,21 @@ public class MainActivity extends AppCompatActivity {
                 case 1:
                     String writeMessage = new String(writeBuf);
                     writeMessage = writeMessage.substring(begin, end);
+                    //bt_output.setText(writeMessage);
+                    bt_output.append(writeMessage + "\n");
+
+
+
                     break;
             }
         }
     };
 
+
+    private void IdentifyGesture()
+    {
+
+    }
 
     private void ConnectToBluetooth()
     {
