@@ -26,6 +26,8 @@ import weka.classifiers.functions.MultilayerPerceptron;
 import weka.classifiers.lazy.KStar;
 import weka.classifiers.trees.J48;
 import weka.classifiers.trees.RandomForest;
+import weka.core.Attribute;
+import weka.core.DenseInstance;
 import weka.core.Instances;
 import weka.datagenerators.Test;
 
@@ -42,12 +44,15 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 
 
 public class MainActivity extends AppCompatActivity {
 
+    private final static int REQUEST_ENABLE_BT = 1;
     private Button mUpButton;
     private Button mDownButton;
     private Button mLeftButton;
@@ -70,9 +75,11 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        ConnectToBluetooth();
+
 
         //WEKA CLASSIFIER
-        InputStream isTrainData = getResources().openRawResource(R.raw.traindata);
+        InputStream isTrainData = getResources().openRawResource(R.raw.smoothnormalizedbigdata);
         reader = new BufferedReader(new InputStreamReader(isTrainData));
 
 
@@ -109,15 +116,68 @@ public class MainActivity extends AppCompatActivity {
         // setting class attribute
         TestData.setClassIndex(TrainData.numAttributes() - 1);
 
-        //J48 mTree = new J48();
-        MultilayerPerceptron mTree = new MultilayerPerceptron();
+        J48 mTree = new J48();
+        //MultilayerPerceptron mTree = new MultilayerPerceptron();
         try {
             mTree.buildClassifier(TrainData);
         } catch (Exception e) {
             e.printStackTrace();
         }
+//-----------------------------------------------------------------------------------------------------------------------------
+        // create a DenseInstance based on your live Acc and Gyr data
+        DenseInstance instance = new DenseInstance(121); // assuming that you have 120 values + one class label
 
+        // I put random values between 0 and 100 instead of live Acc and Gyr data
+        Random randomGenerator = new Random();
+
+        for (int i = 0; i < 120;){
+            instance.setValue(i++, randomGenerator.nextInt(100));
+            instance.setValue(i++, randomGenerator.nextInt(100));
+            instance.setValue(i++, randomGenerator.nextInt(100));
+            instance.setValue(i++, randomGenerator.nextInt(100));
+            instance.setValue(i++, randomGenerator.nextInt(100));
+            instance.setValue(i++, randomGenerator.nextInt(100));
+        }
+
+
+        ArrayList<Attribute> attributes = new ArrayList<>();
+        for (int i = 1; i < 21; i++){
+            attributes.add(new Attribute("AccX" + i));
+            attributes.add(new Attribute("AccY" + i));
+            attributes.add(new Attribute("AccZ" + i));
+            attributes.add(new Attribute("GyrX" + i));
+            attributes.add(new Attribute("GyrY" + i));
+            attributes.add(new Attribute("GyrZ" + i));
+        }
+        // pay attention to the order of the gestures that should match your training file
+        ArrayList<String> classValues = new ArrayList<>();
+        classValues.add("up");
+        classValues.add("down");
+        classValues.add("left");
+        classValues.add("right");
+        attributes.add(new Attribute("gesture", classValues));
+
+        // now create the instances
+        Instances unlabeled = new Instances("testData",attributes,120);
+
+        // and here you should add your DenseInstance to the instances
+        unlabeled.setClassIndex(unlabeled.numAttributes() - 1);
+
+        //	Instances unlabeled = new Instances(test);
+        unlabeled.add(instance);
+        double clsLabel = 0;
+        try {
+            clsLabel = mTree.classifyInstance(unlabeled.instance(0));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        unlabeled.instance(0).setClassValue(clsLabel);
         int classIndex = TrainData.numAttributes() -1;
+        System.out.println("Detected Gesture: "+unlabeled.instance(0).attribute(classIndex).value((int) clsLabel));
+
+//--------------------------------------------------------------------------------------------------------------------
+
+/*        int classIndex = TrainData.numAttributes() -1;
         Instances labeledData = new Instances(TestData);
         for (int i = 0; i < TestData.numInstances(); i++) {
             double clsLabel = 0;
@@ -128,7 +188,8 @@ public class MainActivity extends AppCompatActivity {
             }
             labeledData.instance(i).setClassValue(clsLabel);
             Log.d("Labeled attributes", labeledData.instance(i).attribute(classIndex).value((int)clsLabel));
-        }
+        }*/
+/*
 
         File path = getApplicationContext().getExternalFilesDir(null);
         File file = new File(path, "labeleddata.arff");
@@ -173,7 +234,10 @@ public class MainActivity extends AppCompatActivity {
         }
 
 
-        //ConnectToBluetooth();
+
+*/
+
+
 
         client = getMqttClient(getApplicationContext(), BROKER_URL, "androidkt");
 
@@ -300,7 +364,7 @@ public class MainActivity extends AppCompatActivity {
         if (!mBluetoothAdapter.isEnabled()) {
             //Prompt to turn on BT
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-            //startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+            startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
         }
 
         BluetoothDevice mDevice = null;
