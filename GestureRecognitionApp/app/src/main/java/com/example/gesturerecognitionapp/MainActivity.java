@@ -73,6 +73,11 @@ public class MainActivity extends AppCompatActivity {
     ConnectedThread mConnectedThread;
     private static final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb");
 
+    Instances TestData;
+    Instances TrainData;
+    KStar mTree;
+    DenseInstance instance;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -81,7 +86,7 @@ public class MainActivity extends AppCompatActivity {
         ConnectToBluetooth();
 
 
-        //WEKA CLASSIFIER
+        //Reading in the train data from file
         InputStream isTrainData = getResources().openRawResource(R.raw.smoothnormalizedbigdata);
         reader = new BufferedReader(new InputStreamReader(isTrainData));
 
@@ -89,8 +94,8 @@ public class MainActivity extends AppCompatActivity {
         bt_output.setText("BT input");
 
 
-        //TRAIN
-        Instances TrainData = null;
+        //Creating the train data Instances
+        TrainData = null;
         try {
             TrainData = new Instances(reader);
         } catch (IOException e) {
@@ -104,10 +109,10 @@ public class MainActivity extends AppCompatActivity {
         // setting class attribute
         TrainData.setClassIndex(TrainData.numAttributes() - 1);
 
-        //TEST
+        /*//TEST  Only used for testing with no live data
         InputStream isTestData = getResources().openRawResource(R.raw.testdata);
         reader = new BufferedReader(new InputStreamReader(isTestData));
-        Instances TestData = null;
+        TestData = null;
         try {
             TestData = new Instances(reader);
         } catch (IOException e) {
@@ -119,145 +124,36 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
         // setting class attribute
-        TestData.setClassIndex(TrainData.numAttributes() - 1);
+        TestData.setClassIndex(TrainData.numAttributes() - 1);*/
 
-        J48 mTree = new J48();
+
+        //Instantiating the learning tree
+        mTree = new KStar();
         //MultilayerPerceptron mTree = new MultilayerPerceptron();
         try {
             mTree.buildClassifier(TrainData);
         } catch (Exception e) {
             e.printStackTrace();
         }
-//-----------------------------------------------------------------------------------------------------------------------------
+
         // create a DenseInstance based on your live Acc and Gyr data
-        DenseInstance instance = new DenseInstance(121); // assuming that you have 120 values + one class label
-
-        // I put random values between 0 and 100 instead of live Acc and Gyr data
-        Random randomGenerator = new Random();
-
-        for (int i = 0; i < 120;){
-            instance.setValue(i++, randomGenerator.nextInt(100));
-            instance.setValue(i++, randomGenerator.nextInt(100));
-            instance.setValue(i++, randomGenerator.nextInt(100));
-            instance.setValue(i++, randomGenerator.nextInt(100));
-            instance.setValue(i++, randomGenerator.nextInt(100));
-            instance.setValue(i++, randomGenerator.nextInt(100));
-        }
+        //Instantiating the instance for live recognition. This is what is later filled with the live data
+        instance = new DenseInstance(121); // assuming that you have 120 values + one class label
 
 
-        ArrayList<Attribute> attributes = new ArrayList<>();
-        for (int i = 1; i < 21; i++){
-            attributes.add(new Attribute("AccX" + i));
-            attributes.add(new Attribute("AccY" + i));
-            attributes.add(new Attribute("AccZ" + i));
-            attributes.add(new Attribute("GyrX" + i));
-            attributes.add(new Attribute("GyrY" + i));
-            attributes.add(new Attribute("GyrZ" + i));
-        }
-        // pay attention to the order of the gestures that should match your training file
-        ArrayList<String> classValues = new ArrayList<>();
-        classValues.add("up");
-        classValues.add("down");
-        classValues.add("left");
-        classValues.add("right");
-        attributes.add(new Attribute("gesture", classValues));
-
-        // now create the instances
-        Instances unlabeled = new Instances("testData",attributes,120);
-
-        // and here you should add your DenseInstance to the instances
-        unlabeled.setClassIndex(unlabeled.numAttributes() - 1);
-
-        //	Instances unlabeled = new Instances(test);
-        unlabeled.add(instance);
-        double clsLabel = 0;
-        try {
-            clsLabel = mTree.classifyInstance(unlabeled.instance(0));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        unlabeled.instance(0).setClassValue(clsLabel);
-        int classIndex = TrainData.numAttributes() -1;
-        System.out.println("Detected Gesture: "+unlabeled.instance(0).attribute(classIndex).value((int) clsLabel));
-
-//--------------------------------------------------------------------------------------------------------------------
-
-/*        int classIndex = TrainData.numAttributes() -1;
-        Instances labeledData = new Instances(TestData);
-        for (int i = 0; i < TestData.numInstances(); i++) {
-            double clsLabel = 0;
-            try {
-                clsLabel = mTree.classifyInstance(TestData.instance(i));
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            labeledData.instance(i).setClassValue(clsLabel);
-            Log.d("Labeled attributes", labeledData.instance(i).attribute(classIndex).value((int)clsLabel));
-        }*/
-/*
-
-        File path = getApplicationContext().getExternalFilesDir(null);
-        File file = new File(path, "labeleddata.arff");
-        try {
-            file.createNewFile();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        FileOutputStream stream = null;
-        try {
-            stream = new FileOutputStream(file);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
-        try{
-            stream.write(labeledData.toString().getBytes());
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally{
-            try {
-                stream.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-
-        FileInputStream fiLabeledData = null;
-        try {
-            fiLabeledData = new FileInputStream(file);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
-        int contentTst;
-        try {
-            while ((contentTst = fiLabeledData.read()) != -1)
-            {
-                char a = (char) contentTst;
-                char b = a;
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-
-
-*/
-
-
-
+        //Client for the mqqt cloud
         client = getMqttClient(getApplicationContext(), BROKER_URL, "androidkt");
 
         mUpButton = (Button)findViewById(R.id.Up_Button);
         mDownButton = (Button)findViewById(R.id.Down_Button);
         mLeftButton = (Button)findViewById(R.id.Left_Button);
         mRightButton = (Button)findViewById(R.id.Right_Button);
-
-
         BindButtons();
 
 
     }
 
-
+    /*Reading from bluetooth*/
     private class ConnectThread extends Thread {
         private final BluetoothSocket mmSocket;
         private final BluetoothDevice mmDevice;
@@ -291,7 +187,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-
+    /*Reading from bluetooth*/
     private class ConnectedThread extends Thread {
         private final BluetoothSocket mmSocket;
         private final InputStream mmInStream;
@@ -307,6 +203,7 @@ public class MainActivity extends AppCompatActivity {
             mmInStream = tmpIn;
             mmOutStream = tmpOut;
         }
+        /*Send message if we find ","*/
         public void run() {
 
             byte[] buffer = new byte[1024];
@@ -344,7 +241,8 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-
+    /*Revive the data from bluetooth*/
+    int counter = 0;
     Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
@@ -356,11 +254,24 @@ public class MainActivity extends AppCompatActivity {
                 case 1:
                     String writeMessage = new String(writeBuf);
                     writeMessage = writeMessage.substring(begin, end);
-                    //bt_output.setText(writeMessage);
-                    bt_output.append(writeMessage + "\n");
-
-
-
+                    try
+                    {
+                        //Try parsing the message recieved to integer
+                        int val = Integer.parseInt(writeMessage.trim());
+                        instance.setValue(counter, val);
+                        //Up the counter if success to know how many values we have so far
+                        counter++;
+                        //Wait to have 120 values to start the identifying process
+                        if(counter > 119)
+                        {
+                            counter = 0;
+                            IdentifyGesture();
+                        }
+                    }
+                    catch (NumberFormatException nfe)
+                    {
+                        //Handle nfe?
+                    }
                     break;
             }
         }
@@ -369,7 +280,43 @@ public class MainActivity extends AppCompatActivity {
 
     private void IdentifyGesture()
     {
+        //WE NEED TO SMOOTH THE DATA HERE!!!!!!!!
+        ArrayList<Attribute> attributes = new ArrayList<>();
+        for (int i = 1; i < 21; i++){
+            attributes.add(new Attribute("AccX" + i));
+            attributes.add(new Attribute("AccY" + i));
+            attributes.add(new Attribute("AccZ" + i));
+            attributes.add(new Attribute("GyrX" + i));
+            attributes.add(new Attribute("GyrY" + i));
+            attributes.add(new Attribute("GyrZ" + i));
+        }
+        // pay attention to the order of the gestures that should match your training file <--- ???
+        ArrayList<String> classValues = new ArrayList<>();
+        classValues.add("up");
+        classValues.add("down");
+        classValues.add("left");
+        classValues.add("right");
+        attributes.add(new Attribute("gesture", classValues));
 
+        // now create the instances
+        Instances unlabeled = new Instances("testData",attributes,120);
+
+        // and here you should add your DenseInstance to the instances
+        unlabeled.setClassIndex(unlabeled.numAttributes() - 1);
+
+        //	Instances unlabeled = new Instances(test);
+        unlabeled.add(instance);
+        double clsLabel = 0;
+        try {
+            clsLabel = mTree.classifyInstance(unlabeled.instance(0));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        unlabeled.instance(0).setClassValue(clsLabel);
+        int classIndex = TrainData.numAttributes() -1;
+        System.out.println("Detected Gesture: "+unlabeled.instance(0).attribute(classIndex).value((int) clsLabel));
+        String test = unlabeled.lastInstance().toString(120);
+        bt_output.setText(unlabeled.lastInstance().toString(120)); //Label is found in last spot
     }
 
     private void ConnectToBluetooth()
