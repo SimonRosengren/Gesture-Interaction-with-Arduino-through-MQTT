@@ -87,7 +87,7 @@ public class MainActivity extends AppCompatActivity {
 
 
         //Reading in the train data from file
-        InputStream isTrainData = getResources().openRawResource(R.raw.smoothnormalizedbigdata);
+        InputStream isTrainData = getResources().openRawResource(R.raw.rawtraindata);
         reader = new BufferedReader(new InputStreamReader(isTrainData));
 
         bt_output = (TextView) findViewById(R.id.bt_output);
@@ -354,6 +354,8 @@ public class MainActivity extends AppCompatActivity {
             normAcc.set(i, nA.intValue());
         }
 
+
+
         for (int i = 0; i < values.size(); i++)
         {
             instance.setValue(i, values.get(i));
@@ -361,7 +363,7 @@ public class MainActivity extends AppCompatActivity {
 
         //WE NEED TO SMOOTH THE DATA HERE!!!!!!!!
         ArrayList<Attribute> attributes = new ArrayList<>();
-        for (int i = 1; i < 21; i++){
+        for (int i = 1; i < 21; i++){ // WHY 21?
             attributes.add(new Attribute("AccX" + i));
             attributes.add(new Attribute("AccY" + i));
             attributes.add(new Attribute("AccZ" + i));
