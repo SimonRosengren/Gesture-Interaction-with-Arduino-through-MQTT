@@ -87,7 +87,7 @@ public class MainActivity extends AppCompatActivity {
 
 
         //Reading in the train data from file
-        InputStream isTrainData = getResources().openRawResource(R.raw.rawtraindata);
+        InputStream isTrainData = getResources().openRawResource(R.raw.smoothnormalizedbigdata);
         reader = new BufferedReader(new InputStreamReader(isTrainData));
 
         bt_output = (TextView) findViewById(R.id.bt_output);
@@ -354,7 +354,17 @@ public class MainActivity extends AppCompatActivity {
             normAcc.set(i, nA.intValue());
         }
 
-
+        //Put the smoothed data back
+        int cntr = 0;
+        while (counter < values.size())
+        {
+            for (int i = 0; i < 3; i++, cntr++) {
+                values.set(cntr, normAcc.get(cntr));
+            }
+            for (int i = 0; i < 3; i++, cntr++) {
+                values.set(cntr, normGyro.get(cntr));
+            }
+        }
 
         for (int i = 0; i < values.size(); i++)
         {
