@@ -75,7 +75,7 @@ public class MainActivity extends AppCompatActivity {
 
     Instances TestData;
     Instances TrainData;
-    KStar mTree;
+    J48 mTree;
     DenseInstance instance;
 
     @Override
@@ -128,7 +128,7 @@ public class MainActivity extends AppCompatActivity {
 
 
         //Instantiating the learning tree
-        mTree = new KStar();
+        mTree = new J48();
         //MultilayerPerceptron mTree = new MultilayerPerceptron();
         try {
             mTree.buildClassifier(TrainData);
@@ -243,6 +243,9 @@ public class MainActivity extends AppCompatActivity {
 
     /*Revive the data from bluetooth*/
     int counter = 0;
+    ArrayList<Integer> values = new ArrayList<>();
+    ArrayList<Integer> normAcc = new ArrayList<>();
+    ArrayList<Integer> normGyro = new ArrayList<>();
     Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
@@ -258,13 +261,16 @@ public class MainActivity extends AppCompatActivity {
                     {
                         //Try parsing the message recieved to integer
                         int val = Integer.parseInt(writeMessage.trim());
-                        instance.setValue(counter, val);
+                        values.add(val);
+
+
+                        //instance.setValue(counter, val);
                         //Up the counter if success to know how many values we have so far
-                        counter++;
+                        //counter++;
                         //Wait to have 120 values to start the identifying process
-                        if(counter > 119)
+                        if(values.size() > 119)
                         {
-                            counter = 0;
+                            //counter = 0;
                             IdentifyGesture();
                         }
                     }
@@ -280,6 +286,79 @@ public class MainActivity extends AppCompatActivity {
 
     private void IdentifyGesture()
     {
+        //Förlåt
+        int k = 0;
+        while(k < 120) {
+            for (int j = 0; j < 3; j++, k++) {
+                normAcc.add(values.get(k));
+            }
+            for (int j = 0; j < 3; j++, k++) {
+                normGyro.add(values.get(k));
+            }
+        }
+        k = 0;
+
+        int accMin = normAcc.get(0), accMax = normAcc.get(0), gyrMin = normGyro.get(0), gyrMax = normGyro.get(0);
+        for (int i = 0; i < values.size() / 2; i++) {
+            if (normAcc.get(i) < accMin)
+                accMin = normAcc.get(i);
+            if (normAcc.get(i) > accMax)
+                accMax = normAcc.get(i);
+            if (normGyro.get(i) < gyrMin)
+                gyrMin = normGyro.get(i);
+            if (normGyro.get(i) > gyrMax)
+                gyrMax = normGyro.get(i);
+        }
+
+        for (int i = 0; i < normAcc.size(); i++) {
+
+            if (i == 0) {
+
+            }
+            else if (i == 1){
+                normAcc.set(i, (normAcc.get(i) + normAcc.get(i - 1)) / 2);
+            }
+            else if (i == 2){
+                normAcc.set(i, (normAcc.get(i) + normAcc.get(i - 1) + normAcc.get(i - 2)) / 3);
+            }
+            else if (i == 3){
+                normAcc.set(i, (normAcc.get(i) + normAcc.get(i - 1) + normAcc.get(i - 2) + normAcc.get(i - 3)) / 4);
+            }
+            else{
+                normAcc.set(i, (normAcc.get(i) + normAcc.get(i - 1) + normAcc.get(i - 2) + normAcc.get(i - 3) + normAcc.get(i - 4)) / 5);
+            }
+        }
+        for (int i = 0; i < normGyro.size(); i++) {
+
+            if (i == 0) {
+
+            }
+            else if (i == 1){
+                normGyro.set(i, (normGyro.get(i) + normGyro.get(i - 1)) / 2);
+            }
+            else if (i == 2){
+                normGyro.set(i, (normGyro.get(i) + normGyro.get(i - 1) + normGyro.get(i - 2)) / 3);
+            }
+            else if (i == 3){
+                normGyro.set(i, (normGyro.get(i) + normGyro.get(i - 1) + normGyro.get(i - 2) + normGyro.get(i - 3)) / 4);
+            }
+            else{
+                normGyro.set(i, (normGyro.get(i) + normGyro.get(i - 1) + normGyro.get(i - 2) + normGyro.get(i - 3) + normGyro.get(i - 4)) / 5);
+            }
+        }
+
+        for (int i = 0; i < normGyro.size(); i++) {
+            Double nG = ((double)(normGyro.get(i) - gyrMin) / (double)(gyrMax - gyrMin)) * 200;
+            Double nA = ((double)(normAcc.get(i) - accMin) / (double)(accMax - accMin)) * 200;
+            normGyro.set(i, nG.intValue());
+            normAcc.set(i, nA.intValue());
+        }
+
+        for (int i = 0; i < values.size(); i++)
+        {
+            instance.setValue(i, values.get(i));
+        }
+
         //WE NEED TO SMOOTH THE DATA HERE!!!!!!!!
         ArrayList<Attribute> attributes = new ArrayList<>();
         for (int i = 1; i < 21; i++){
@@ -292,10 +371,10 @@ public class MainActivity extends AppCompatActivity {
         }
         // pay attention to the order of the gestures that should match your training file <--- ???
         ArrayList<String> classValues = new ArrayList<>();
-        classValues.add("up");
-        classValues.add("down");
-        classValues.add("left");
-        classValues.add("right");
+        classValues.add("Up");
+        classValues.add("Left");
+        classValues.add("Down");
+        classValues.add("Right");
         attributes.add(new Attribute("gesture", classValues));
 
         // now create the instances
@@ -316,7 +395,15 @@ public class MainActivity extends AppCompatActivity {
         int classIndex = TrainData.numAttributes() -1;
         System.out.println("Detected Gesture: "+unlabeled.instance(0).attribute(classIndex).value((int) clsLabel));
         String test = unlabeled.lastInstance().toString(120);
-        bt_output.setText(unlabeled.lastInstance().toString(120)); //Label is found in last spot
+        bt_output.append(unlabeled.lastInstance().toString(120) + "\n"); //Label is found in last spot
+
+        publishGestureToMqtt(unlabeled.lastInstance().toString(120));
+
+
+
+        normAcc.clear();
+        normGyro.clear();
+        values.clear();
     }
 
     private void ConnectToBluetooth()
@@ -447,6 +534,17 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+    }
+
+    public void publishGestureToMqtt(String gesture)
+    {
+        try {
+            publishMessage(client, gesture, 0, "Gesture");
+        } catch (MqttException e) {
+            e.printStackTrace();
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
     }
 
 
