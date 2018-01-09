@@ -87,7 +87,7 @@ public class MainActivity extends AppCompatActivity {
 
 
         //Reading in the train data from file
-        InputStream isTrainData = getResources().openRawResource(R.raw.smoothnormalizedbigdata);
+        InputStream isTrainData = getResources().openRawResource(R.raw.smoothnormalbigdata);
         reader = new BufferedReader(new InputStreamReader(isTrainData));
 
         bt_output = (TextView) findViewById(R.id.bt_output);
@@ -136,9 +136,6 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
 
-        // create a DenseInstance based on your live Acc and Gyr data
-        //Instantiating the instance for live recognition. This is what is later filled with the live data
-        instance = new DenseInstance(121); // assuming that you have 120 values + one class label
 
 
         //Client for the mqqt cloud
@@ -243,9 +240,9 @@ public class MainActivity extends AppCompatActivity {
 
     /*Revive the data from bluetooth*/
     int counter = 0;
-    ArrayList<Integer> values = new ArrayList<>();
-    ArrayList<Integer> normAcc = new ArrayList<>();
-    ArrayList<Integer> normGyro = new ArrayList<>();
+    ArrayList<Double> values = new ArrayList<>();
+    ArrayList<Double> normAcc = new ArrayList<>();
+    ArrayList<Double> normGyro = new ArrayList<>();
     Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
@@ -260,7 +257,7 @@ public class MainActivity extends AppCompatActivity {
                     try
                     {
                         //Try parsing the message recieved to integer
-                        int val = Integer.parseInt(writeMessage.trim());
+                        double val = Double.parseDouble(writeMessage.trim());
                         values.add(val);
 
 
@@ -286,6 +283,9 @@ public class MainActivity extends AppCompatActivity {
 
     private void IdentifyGesture()
     {
+        // create a DenseInstance based on your live Acc and Gyr data
+        //Instantiating the instance for live recognition. This is what is later filled with the live data
+        instance = new DenseInstance(121); // assuming that you have 120 values + one class label
         //Förlåt
         int k = 0;
         while(k < 120) {
@@ -298,7 +298,7 @@ public class MainActivity extends AppCompatActivity {
         }
         k = 0;
 
-        int accMin = normAcc.get(0), accMax = normAcc.get(0), gyrMin = normGyro.get(0), gyrMax = normGyro.get(0);
+        double accMin = normAcc.get(0), accMax = normAcc.get(0), gyrMin = normGyro.get(0), gyrMax = normGyro.get(0);
         for (int i = 0; i < values.size() / 2; i++) {
             if (normAcc.get(i) < accMin)
                 accMin = normAcc.get(i);
@@ -312,57 +312,61 @@ public class MainActivity extends AppCompatActivity {
 
         for (int i = 0; i < normAcc.size(); i++) {
 
-            if (i == 0) {
+            if (i < 3) {
 
             }
-            else if (i == 1){
-                normAcc.set(i, (normAcc.get(i) + normAcc.get(i - 1)) / 2);
+            else if (i > 2 && i < 6){
+                //normAcc.set(i, (normAcc.get(i) + normAcc.get(i - 1)) / 2);
+                normAcc.set(i, (normAcc.get(i) + normAcc.get(i - 3)) / 2);
             }
-            else if (i == 2){
-                normAcc.set(i, (normAcc.get(i) + normAcc.get(i - 1) + normAcc.get(i - 2)) / 3);
+            else if (i > 5 && i < 9){
+                normAcc.set(i, (normAcc.get(i) + normAcc.get(i - 3) + normAcc.get(i - 6)) / 3);
             }
-            else if (i == 3){
-                normAcc.set(i, (normAcc.get(i) + normAcc.get(i - 1) + normAcc.get(i - 2) + normAcc.get(i - 3)) / 4);
+            else if (i > 8 && i <  12){
+                normAcc.set(i, (normAcc.get(i) + normAcc.get(i - 3) + normAcc.get(i - 6) + normAcc.get(i - 9)) / 4);
             }
             else{
-                normAcc.set(i, (normAcc.get(i) + normAcc.get(i - 1) + normAcc.get(i - 2) + normAcc.get(i - 3) + normAcc.get(i - 4)) / 5);
+                normAcc.set(i, (normAcc.get(i) + normAcc.get(i - 3) + normAcc.get(i - 6) + normAcc.get(i - 9) + normAcc.get(i - 12)) / 5);
             }
         }
         for (int i = 0; i < normGyro.size(); i++) {
 
-            if (i == 0) {
+            if (i < 3) {
 
             }
-            else if (i == 1){
-                normGyro.set(i, (normGyro.get(i) + normGyro.get(i - 1)) / 2);
+            else if (i > 2 && i < 6){
+                //normAcc.set(i, (normAcc.get(i) + normAcc.get(i - 1)) / 2);
+                normGyro.set(i, (normGyro.get(i) + normGyro.get(i - 3)) / 2);
             }
-            else if (i == 2){
-                normGyro.set(i, (normGyro.get(i) + normGyro.get(i - 1) + normGyro.get(i - 2)) / 3);
+            else if (i > 5 && i < 9){
+                normGyro.set(i, (normGyro.get(i) + normGyro.get(i - 3) + normGyro.get(i - 6)) / 3);
             }
-            else if (i == 3){
-                normGyro.set(i, (normGyro.get(i) + normGyro.get(i - 1) + normGyro.get(i - 2) + normGyro.get(i - 3)) / 4);
+            else if (i > 8 && i <  12){
+                normGyro.set(i, (normGyro.get(i) + normGyro.get(i - 3) + normGyro.get(i - 6) + normGyro.get(i - 9)) / 4);
             }
             else{
-                normGyro.set(i, (normGyro.get(i) + normGyro.get(i - 1) + normGyro.get(i - 2) + normGyro.get(i - 3) + normGyro.get(i - 4)) / 5);
+                normGyro.set(i, (normGyro.get(i) + normGyro.get(i - 3) + normGyro.get(i - 6) + normGyro.get(i - 9) + normGyro.get(i - 12)) / 5);
             }
         }
 
         for (int i = 0; i < normGyro.size(); i++) {
             Double nG = ((double)(normGyro.get(i) - gyrMin) / (double)(gyrMax - gyrMin)) * 200;
             Double nA = ((double)(normAcc.get(i) - accMin) / (double)(accMax - accMin)) * 200;
-            normGyro.set(i, nG.intValue());
-            normAcc.set(i, nA.intValue());
+            normGyro.set(i, nG.doubleValue());
+            normAcc.set(i, nA.doubleValue());
         }
 
         //Put the smoothed data back
         int cntr = 0;
-        while (counter < values.size())
+        int gyrCounter = 0;
+        int accCounter = 0;
+        while (cntr < values.size() - 1)
         {
-            for (int i = 0; i < 3; i++, cntr++) {
-                values.set(cntr, normAcc.get(cntr));
+            for (int i = 0; i < 3; i++, cntr++, accCounter++) {
+                values.set(cntr, normAcc.get(accCounter));
             }
-            for (int i = 0; i < 3; i++, cntr++) {
-                values.set(cntr, normGyro.get(cntr));
+            for (int i = 0; i < 3; i++, cntr++, gyrCounter++) {
+                values.set(cntr, normGyro.get(gyrCounter));
             }
         }
 
@@ -371,9 +375,8 @@ public class MainActivity extends AppCompatActivity {
             instance.setValue(i, values.get(i));
         }
 
-        //WE NEED TO SMOOTH THE DATA HERE!!!!!!!!
         ArrayList<Attribute> attributes = new ArrayList<>();
-        for (int i = 1; i < 21; i++){ // WHY 21?
+        for (int i = 1; i < 21; i++){
             attributes.add(new Attribute("AccX" + i));
             attributes.add(new Attribute("AccY" + i));
             attributes.add(new Attribute("AccZ" + i));
@@ -381,12 +384,14 @@ public class MainActivity extends AppCompatActivity {
             attributes.add(new Attribute("GyrY" + i));
             attributes.add(new Attribute("GyrZ" + i));
         }
-        // pay attention to the order of the gestures that should match your training file <--- ???
+        // pay attention to the order of the gestures that should match your training file
         ArrayList<String> classValues = new ArrayList<>();
         classValues.add("Up");
         classValues.add("Left");
         classValues.add("Down");
         classValues.add("Right");
+        classValues.add("Tilt Left");
+        classValues.add("Tilt Right");
         attributes.add(new Attribute("gesture", classValues));
 
         // now create the instances
@@ -405,8 +410,10 @@ public class MainActivity extends AppCompatActivity {
         }
         unlabeled.instance(0).setClassValue(clsLabel);
         int classIndex = TrainData.numAttributes() -1;
+        //String sTree = mTree.toString();
+
         System.out.println("Detected Gesture: "+unlabeled.instance(0).attribute(classIndex).value((int) clsLabel));
-        String test = unlabeled.lastInstance().toString(120);
+        String test = unlabeled.instance(0).attribute(classIndex).value((int) clsLabel);
         bt_output.append(unlabeled.lastInstance().toString(120) + "\n"); //Label is found in last spot
 
         publishGestureToMqtt(unlabeled.lastInstance().toString(120));
