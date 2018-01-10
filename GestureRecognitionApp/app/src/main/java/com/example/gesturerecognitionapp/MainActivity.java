@@ -14,7 +14,6 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
-
 import org.eclipse.paho.android.service.MqttAndroidClient;
 import org.eclipse.paho.client.mqttv3.DisconnectedBufferOptions;
 import org.eclipse.paho.client.mqttv3.IMqttActionListener;
@@ -22,31 +21,17 @@ import org.eclipse.paho.client.mqttv3.IMqttToken;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
-
-import weka.classifiers.functions.MultilayerPerceptron;
-import weka.classifiers.lazy.KStar;
 import weka.classifiers.trees.J48;
-import weka.classifiers.trees.RandomForest;
 import weka.core.Attribute;
 import weka.core.DenseInstance;
 import weka.core.Instances;
-import weka.datagenerators.Test;
-
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
-import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 
@@ -63,7 +48,7 @@ public class MainActivity extends AppCompatActivity {
 
     private MqttAndroidClient mqttAndroidClient;
 
-    BufferedReader reader;
+    private BufferedReader reader;
 
     private MqttAndroidClient client;
 
@@ -73,7 +58,6 @@ public class MainActivity extends AppCompatActivity {
     ConnectedThread mConnectedThread;
     private static final UUID MY_UUID = UUID.fromString("00001101-0000-1000-8000-00805f9b34fb");
 
-    Instances TestData;
     Instances TrainData;
     J48 mTree;
     DenseInstance instance;
@@ -85,14 +69,12 @@ public class MainActivity extends AppCompatActivity {
 
         ConnectToBluetooth();
 
-
         //Reading in the train data from file
         InputStream isTrainData = getResources().openRawResource(R.raw.smoothnormalbigdata);
         reader = new BufferedReader(new InputStreamReader(isTrainData));
 
         bt_output = (TextView) findViewById(R.id.bt_output);
         bt_output.setText("BT input");
-
 
         //Creating the train data Instances
         TrainData = null;
@@ -109,34 +91,13 @@ public class MainActivity extends AppCompatActivity {
         // setting class attribute
         TrainData.setClassIndex(TrainData.numAttributes() - 1);
 
-        /*//TEST  Only used for testing with no live data
-        InputStream isTestData = getResources().openRawResource(R.raw.testdata);
-        reader = new BufferedReader(new InputStreamReader(isTestData));
-        TestData = null;
-        try {
-            TestData = new Instances(reader);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        try {
-            reader.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        // setting class attribute
-        TestData.setClassIndex(TrainData.numAttributes() - 1);*/
-
-
         //Instantiating the learning tree
         mTree = new J48();
-        //MultilayerPerceptron mTree = new MultilayerPerceptron();
         try {
             mTree.buildClassifier(TrainData);
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-
 
         //Client for the mqqt cloud
         client = getMqttClient(getApplicationContext(), BROKER_URL, "androidkt");
@@ -239,7 +200,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /*Revive the data from bluetooth*/
-    int counter = 0;
     ArrayList<Double> values = new ArrayList<>();
     ArrayList<Double> normAcc = new ArrayList<>();
     ArrayList<Double> normGyro = new ArrayList<>();
@@ -260,14 +220,9 @@ public class MainActivity extends AppCompatActivity {
                         double val = Double.parseDouble(writeMessage.trim());
                         values.add(val);
 
-
-                        //instance.setValue(counter, val);
-                        //Up the counter if success to know how many values we have so far
-                        //counter++;
                         //Wait to have 120 values to start the identifying process
                         if(values.size() > 119)
                         {
-                            //counter = 0;
                             IdentifyGesture();
                         }
                     }
@@ -286,9 +241,9 @@ public class MainActivity extends AppCompatActivity {
         // create a DenseInstance based on your live Acc and Gyr data
         //Instantiating the instance for live recognition. This is what is later filled with the live data
         instance = new DenseInstance(121); // assuming that you have 120 values + one class label
-        //Förlåt
+
         int k = 0;
-        while(k < 120) {
+        while(k < 120) { //Divide gyro and acc data
             for (int j = 0; j < 3; j++, k++) {
                 normAcc.add(values.get(k));
             }
@@ -296,8 +251,8 @@ public class MainActivity extends AppCompatActivity {
                 normGyro.add(values.get(k));
             }
         }
-        k = 0;
 
+        //Find min and max for acc- and gyro data
         double accMin = normAcc.get(0), accMax = normAcc.get(0), gyrMin = normGyro.get(0), gyrMax = normGyro.get(0);
         for (int i = 0; i < values.size() / 2; i++) {
             if (normAcc.get(i) < accMin)
@@ -310,11 +265,10 @@ public class MainActivity extends AppCompatActivity {
                 gyrMax = normGyro.get(i);
         }
 
+        //Smooth acc data using moving window avarage
         for (int i = 0; i < normAcc.size(); i++) {
 
-            if (i < 3) {
-
-            }
+            if (i < 3) {}
             else if (i > 2 && i < 6){
                 //normAcc.set(i, (normAcc.get(i) + normAcc.get(i - 1)) / 2);
                 normAcc.set(i, (normAcc.get(i) + normAcc.get(i - 3)) / 2);
@@ -329,13 +283,12 @@ public class MainActivity extends AppCompatActivity {
                 normAcc.set(i, (normAcc.get(i) + normAcc.get(i - 3) + normAcc.get(i - 6) + normAcc.get(i - 9) + normAcc.get(i - 12)) / 5);
             }
         }
+
+        //Smoothing gyro data using moving window avarage
         for (int i = 0; i < normGyro.size(); i++) {
 
-            if (i < 3) {
-
-            }
+            if (i < 3) {}
             else if (i > 2 && i < 6){
-                //normAcc.set(i, (normAcc.get(i) + normAcc.get(i - 1)) / 2);
                 normGyro.set(i, (normGyro.get(i) + normGyro.get(i - 3)) / 2);
             }
             else if (i > 5 && i < 9){
@@ -349,14 +302,15 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
+        //Normalize acc and gyro data between 0 and 200
         for (int i = 0; i < normGyro.size(); i++) {
-            Double nG = ((double)(normGyro.get(i) - gyrMin) / (double)(gyrMax - gyrMin)) * 200;
-            Double nA = ((double)(normAcc.get(i) - accMin) / (double)(accMax - accMin)) * 200;
+            Double nG = ((normGyro.get(i) - gyrMin) / (gyrMax - gyrMin)) * 200;
+            Double nA = ((normAcc.get(i) - accMin) / (accMax - accMin)) * 200;
             normGyro.set(i, nG.doubleValue());
             normAcc.set(i, nA.doubleValue());
         }
 
-        //Put the smoothed data back
+        //Put the smoothed data back in values
         int cntr = 0;
         int gyrCounter = 0;
         int accCounter = 0;
@@ -370,6 +324,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
+        //Fill instance with the values
         for (int i = 0; i < values.size(); i++)
         {
             instance.setValue(i, values.get(i));
@@ -409,16 +364,10 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
         unlabeled.instance(0).setClassValue(clsLabel);
-        int classIndex = TrainData.numAttributes() -1;
-        //String sTree = mTree.toString();
 
-        System.out.println("Detected Gesture: "+unlabeled.instance(0).attribute(classIndex).value((int) clsLabel));
-        String test = unlabeled.instance(0).attribute(classIndex).value((int) clsLabel);
         bt_output.append(unlabeled.lastInstance().toString(120) + "\n"); //Label is found in last spot
 
         publishGestureToMqtt(unlabeled.lastInstance().toString(120));
-
-
 
         normAcc.clear();
         normGyro.clear();
@@ -455,7 +404,6 @@ public class MainActivity extends AppCompatActivity {
         MqttConnectOptions mqttConnectOptions = new MqttConnectOptions();
         mqttConnectOptions.setCleanSession(false);
         mqttConnectOptions.setAutomaticReconnect(true);
-        //mqttConnectOptions.setWill(Constants.PUBLISH_TOPIC, "I am going offline".getBytes(), 1, true);
         mqttConnectOptions.setUserName("knftdzxy");
         mqttConnectOptions.setPassword("GkpGmebv6Tk7".toCharArray());
         return mqttConnectOptions;
@@ -565,7 +513,5 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
     }
-
-
 
 }
