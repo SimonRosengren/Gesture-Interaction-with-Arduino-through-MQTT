@@ -70,7 +70,7 @@ public class MainActivity extends AppCompatActivity {
         ConnectToBluetooth();
 
         //Reading in the train data from file
-        InputStream isTrainData = getResources().openRawResource(R.raw.smoothnormalbigdata);
+        InputStream isTrainData = getResources().openRawResource(R.raw.combinedraw);
         reader = new BufferedReader(new InputStreamReader(isTrainData));
 
         bt_output = (TextView) findViewById(R.id.bt_output);
@@ -242,7 +242,7 @@ public class MainActivity extends AppCompatActivity {
         //Instantiating the instance for live recognition. This is what is later filled with the live data
         instance = new DenseInstance(121); // assuming that you have 120 values + one class label
 
-        int k = 0;
+       /* int k = 0;
         while(k < 120) { //Divide gyro and acc data
             for (int j = 0; j < 3; j++, k++) {
                 normAcc.add(values.get(k));
@@ -323,7 +323,7 @@ public class MainActivity extends AppCompatActivity {
                 values.set(cntr, normGyro.get(gyrCounter));
             }
         }
-
+*/
         //Fill instance with the values
         for (int i = 0; i < values.size(); i++)
         {
@@ -341,12 +341,12 @@ public class MainActivity extends AppCompatActivity {
         }
         // pay attention to the order of the gestures that should match your training file
         ArrayList<String> classValues = new ArrayList<>();
-        classValues.add("Up");
-        classValues.add("Left");
         classValues.add("Down");
+        classValues.add("Left");
         classValues.add("Right");
-        classValues.add("Tilt Left");
-        classValues.add("Tilt Right");
+        classValues.add("TiltLeft");
+        classValues.add("TiltRight");
+        classValues.add("Up");
         attributes.add(new Attribute("gesture", classValues));
 
         // now create the instances
