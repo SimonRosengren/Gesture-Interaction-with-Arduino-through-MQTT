@@ -1,6 +1,7 @@
 package com.example.gesturerecognitionapp;
 
 import android.content.Context;
+import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -29,10 +30,9 @@ public class StartActivity extends AppCompatActivity implements MqttCallback{
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_start);
+        outPut = (TextView) findViewById(R.id.startOutPut);
         client = getMqttClient(getApplicationContext(), BROKER_URL, "androidkt");
 
-
-        outPut = (TextView) findViewById(R.id.startOutPut);
     }
 
     private MqttConnectOptions getMqttConnectionOption() {
@@ -55,22 +55,26 @@ public class StartActivity extends AppCompatActivity implements MqttCallback{
         mqttAndroidClient = new MqttAndroidClient(getApplicationContext(), brokerUrl, clientId);
         try {
             IMqttToken token = mqttAndroidClient.connect(getMqttConnectionOption());
-
             token.setActionCallback(new IMqttActionListener() {
                 @Override
                 public void onSuccess(IMqttToken asyncActionToken) {
                     mqttAndroidClient.setBufferOpts(getDisconnectedBufferOptions());
                     Log.d("MainActivity", "Success!");
+                    SubToTopic("Lock");
                 }
 
                 @Override
                 public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
                     Log.d("MainActivity", "Failure " + exception.toString());
                 }
+
             });
+
+
         } catch (MqttException e) {
             e.printStackTrace();
         }
+
         return mqttAndroidClient;
     }
 
@@ -83,10 +87,35 @@ public class StartActivity extends AppCompatActivity implements MqttCallback{
     @Override
     public void messageArrived(String topic, MqttMessage mqttMessage) throws Exception {
         outPut.setText(mqttMessage.toString());
+        if (mqttMessage.toString().equals("1"))
+        {
+            Intent intent = new Intent(this, MainActivity.class);
+            startActivity(intent);
+        }
     }
 
     @Override
     public void deliveryComplete(IMqttDeliveryToken iMqttDeliveryToken) {
 
+    }
+
+    public void SubToTopic(String topic)
+    {
+        client.setCallback(this);
+        try {
+            client.subscribe(topic, 0, null, new IMqttActionListener() {
+                @Override
+                public void onSuccess(IMqttToken iMqttToken) {
+                    outPut.setText("Subscribed to topic!");
+                }
+
+                @Override
+                public void onFailure(IMqttToken iMqttToken, Throwable throwable) {
+                    outPut.setText("Subscribing failed.");
+                }
+            });
+        } catch (MqttException e) {
+            e.printStackTrace();
+        }
     }
 }
