@@ -102,13 +102,6 @@ public class MainActivity extends AppCompatActivity {
         //Client for the mqqt cloud
         client = getMqttClient(getApplicationContext(), BROKER_URL, "androidkt");
 
-        mUpButton = (Button)findViewById(R.id.Up_Button);
-        mDownButton = (Button)findViewById(R.id.Down_Button);
-        mLeftButton = (Button)findViewById(R.id.Left_Button);
-        mRightButton = (Button)findViewById(R.id.Right_Button);
-        BindButtons();
-
-
     }
 
     /*Reading from bluetooth*/
@@ -451,57 +444,6 @@ public class MainActivity extends AppCompatActivity {
         client.publish(topic, message);
     }
 
-    private void BindButtons()
-    {
-        mUpButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                try {
-                    publishMessage(client, "UP", 0, "Gesture");
-                } catch (MqttException e) {
-                    e.printStackTrace();
-                } catch (UnsupportedEncodingException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-        mDownButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                try {
-                    publishMessage(client, "DOWN", 0, "Gesture");
-                } catch (MqttException e) {
-                    e.printStackTrace();
-                } catch (UnsupportedEncodingException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-        mLeftButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                try {
-                    publishMessage(client, "LEFT", 0, "Gesture");
-                } catch (MqttException e) {
-                    e.printStackTrace();
-                } catch (UnsupportedEncodingException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-        mRightButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                try {
-                    publishMessage(client, "RIGHT", 0, "Gesture");
-                } catch (MqttException e) {
-                    e.printStackTrace();
-                } catch (UnsupportedEncodingException e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-    }
 
     public void publishGestureToMqtt(String gesture)
     {
