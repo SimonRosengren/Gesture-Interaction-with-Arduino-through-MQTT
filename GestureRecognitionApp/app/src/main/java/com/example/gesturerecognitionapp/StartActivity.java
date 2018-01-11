@@ -106,12 +106,12 @@ public class StartActivity extends AppCompatActivity implements MqttCallback{
             client.subscribe(topic, 0, null, new IMqttActionListener() {
                 @Override
                 public void onSuccess(IMqttToken iMqttToken) {
-                    outPut.setText("Subscribed to topic!");
+                    outPut.setText("No device in range...");
                 }
 
                 @Override
                 public void onFailure(IMqttToken iMqttToken, Throwable throwable) {
-                    outPut.setText("Subscribing failed.");
+                    outPut.setText("Failed subscribing to topic");
                 }
             });
         } catch (MqttException e) {

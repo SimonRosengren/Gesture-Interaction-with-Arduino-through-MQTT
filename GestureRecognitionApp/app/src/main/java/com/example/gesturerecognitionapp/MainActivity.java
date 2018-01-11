@@ -39,10 +39,6 @@ import java.util.UUID;
 public class MainActivity extends AppCompatActivity {
 
     private final static int REQUEST_ENABLE_BT = 1;
-    private Button mUpButton;
-    private Button mDownButton;
-    private Button mLeftButton;
-    private Button mRightButton;
     private Button resetButton;
 
     private TextView bt_output;
@@ -381,8 +377,10 @@ public class MainActivity extends AppCompatActivity {
             }
             if (unlabeled.lastInstance().toString(120).equals("TiltRight"))
             {
-                BROKER_URL = "tcp://m23.cloudmqtt.com:1166";
-                connectToMqtt("hsxvflij", "Y-BaNkKyg-aM");
+                BROKER_URL = "tcp://m23.cloudmqtt.com:13735";
+                connectToMqtt("fxbddagl", "eKoK_ydFItcL");
+
+                Unlock();
             }
         }
 
