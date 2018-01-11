@@ -43,6 +43,7 @@ public class MainActivity extends AppCompatActivity {
     private Button mDownButton;
     private Button mLeftButton;
     private Button mRightButton;
+    private Button resetButton;
 
     private TextView bt_output;
 
@@ -53,6 +54,8 @@ public class MainActivity extends AppCompatActivity {
     private MqttAndroidClient client;
 
     private String BROKER_URL = "tcp://m14.cloudmqtt.com:16303";
+
+    boolean isUnlocked = false;
 
     BluetoothAdapter mBluetoothAdapter;
     ConnectedThread mConnectedThread;
@@ -71,10 +74,19 @@ public class MainActivity extends AppCompatActivity {
 
         //Reading in the train data from file
         InputStream isTrainData = getResources().openRawResource(R.raw.combinedraw);
+        resetButton = (Button) findViewById(R.id.resetbutton);
+
+        resetButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                values.clear();
+            }
+        });
+
         reader = new BufferedReader(new InputStreamReader(isTrainData));
 
         bt_output = (TextView) findViewById(R.id.bt_output);
-        bt_output.setText("BT input");
+        bt_output.setText("Unlock the device...");
 
         //Creating the train data Instances
         TrainData = null;
@@ -98,10 +110,6 @@ public class MainActivity extends AppCompatActivity {
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-        //Client for the mqqt cloud
-        client = getMqttClient(getApplicationContext(), BROKER_URL, "androidkt");
-
     }
 
     /*Reading from bluetooth*/
@@ -360,12 +368,37 @@ public class MainActivity extends AppCompatActivity {
 
         bt_output.append(unlabeled.lastInstance().toString(120) + "\n"); //Label is found in last spot
 
-        publishGestureToMqtt(unlabeled.lastInstance().toString(120));
+
+        if (!isUnlocked)
+        {
+            if (unlabeled.lastInstance().toString(120).equals("TiltLeft"))
+            {
+                BROKER_URL = "tcp://m14.cloudmqtt.com:16303";
+                connectToMqtt("knftdzxy", "GkpGmebv6Tk7");
+
+                Unlock();
+
+            }
+            if (unlabeled.lastInstance().toString(120).equals("TiltRight"))
+            {
+                BROKER_URL = "tcp://m23.cloudmqtt.com:1166";
+                connectToMqtt("hsxvflij", "Y-BaNkKyg-aM");
+            }
+        }
+
+
+        else if(isUnlocked)
+        {
+            publishGestureToMqtt(unlabeled.lastInstance().toString(120));
+        }
+
 
         normAcc.clear();
         normGyro.clear();
         values.clear();
     }
+
+
 
     private void ConnectToBluetooth()
     {
@@ -393,12 +426,12 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    private MqttConnectOptions getMqttConnectionOption() {
+    private MqttConnectOptions getMqttConnectionOption(String username, String password) {
         MqttConnectOptions mqttConnectOptions = new MqttConnectOptions();
         mqttConnectOptions.setCleanSession(false);
         mqttConnectOptions.setAutomaticReconnect(true);
-        mqttConnectOptions.setUserName("knftdzxy");
-        mqttConnectOptions.setPassword("GkpGmebv6Tk7".toCharArray());
+        mqttConnectOptions.setUserName(username);
+        mqttConnectOptions.setPassword(password.toCharArray());
         return mqttConnectOptions;
     }
     private DisconnectedBufferOptions getDisconnectedBufferOptions() {
@@ -410,15 +443,16 @@ public class MainActivity extends AppCompatActivity {
         return disconnectedBufferOptions;
     }
 
-    public MqttAndroidClient getMqttClient(Context context, String brokerUrl, String clientId) {
+    public MqttAndroidClient getMqttClient(Context context, String brokerUrl, String clientId, String username, String password) {
         mqttAndroidClient = new MqttAndroidClient(getApplicationContext(), brokerUrl, clientId);
         try {
-            IMqttToken token = mqttAndroidClient.connect(getMqttConnectionOption());
+            IMqttToken token = mqttAndroidClient.connect(getMqttConnectionOption(username, password));
             token.setActionCallback(new IMqttActionListener() {
                 @Override
                 public void onSuccess(IMqttToken asyncActionToken) {
                     mqttAndroidClient.setBufferOpts(getDisconnectedBufferOptions());
                     Log.d("MainActivity", "Success!");
+                    publishGestureToMqtt("X"); //Tell arduino that we have connected
                 }
 
                 @Override
@@ -454,6 +488,18 @@ public class MainActivity extends AppCompatActivity {
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
         }
+    }
+
+    public void connectToMqtt(String username, String password)
+    {
+        //Client for the mqqt cloud
+        client = getMqttClient(getApplicationContext(), BROKER_URL, "androidkt", username, password);
+    }
+
+    public void Unlock()
+    {
+        isUnlocked = true;
+
     }
 
 }
