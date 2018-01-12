@@ -90,7 +90,15 @@ public class StartActivity extends AppCompatActivity implements MqttCallback{
         if (mqttMessage.toString().equals("1"))
         {
             Intent intent = new Intent(this, MainActivity.class);
+            intent.putExtra("CurrentDevice", 1);
             startActivity(intent);
+        }
+        else if (mqttMessage.toString().equals("2"))
+        {
+            Intent intent = new Intent(this, MainActivity.class);
+            intent.putExtra("CurrentDevice", 2);
+            startActivity(intent);
+
         }
     }
 

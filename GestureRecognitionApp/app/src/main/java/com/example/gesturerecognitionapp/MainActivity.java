@@ -49,6 +49,8 @@ public class MainActivity extends AppCompatActivity {
 
     private MqttAndroidClient client;
 
+    private int currentDevice;
+
     private String BROKER_URL = "tcp://m14.cloudmqtt.com:16303";
 
     boolean isUnlocked = false;
@@ -71,6 +73,9 @@ public class MainActivity extends AppCompatActivity {
         //Reading in the train data from file
         InputStream isTrainData = getResources().openRawResource(R.raw.combinedraw);
         resetButton = (Button) findViewById(R.id.resetbutton);
+
+
+        currentDevice = getIntent().getIntExtra("CurrentDevice", 1);
 
         resetButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -367,7 +372,7 @@ public class MainActivity extends AppCompatActivity {
 
         if (!isUnlocked)
         {
-            if (unlabeled.lastInstance().toString(120).equals("TiltLeft"))
+            if (unlabeled.lastInstance().toString(120).equals("TiltLeft") && currentDevice == 1)
             {
                 BROKER_URL = "tcp://m14.cloudmqtt.com:16303";
                 connectToMqtt("knftdzxy", "GkpGmebv6Tk7");
@@ -375,7 +380,7 @@ public class MainActivity extends AppCompatActivity {
                 Unlock();
 
             }
-            if (unlabeled.lastInstance().toString(120).equals("TiltRight"))
+            if (unlabeled.lastInstance().toString(120).equals("TiltRight") && currentDevice == 2)
             {
                 BROKER_URL = "tcp://m23.cloudmqtt.com:13735";
                 connectToMqtt("fxbddagl", "eKoK_ydFItcL");
@@ -388,6 +393,7 @@ public class MainActivity extends AppCompatActivity {
         else if(isUnlocked)
         {
             publishGestureToMqtt(unlabeled.lastInstance().toString(120));
+            values.clear();
         }
 
 
